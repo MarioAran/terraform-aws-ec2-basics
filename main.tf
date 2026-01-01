@@ -30,9 +30,10 @@ data "aws_vpc" "default" {
 resource "aws_instance" "app_server" {
     ami = data.aws_ami.ubuntu.id
     instance_type = var.instance_type
+    key_name = aws_key_pair.mi_key.key_name
     vpc_security_group_ids = [aws_security_group.allow_ssh.id]
     tags = {
-      name = "learn-terraform"
+      Name = "learn-terraform"
     }
 }
 
@@ -61,4 +62,8 @@ resource "aws_vpc_security_group_egress_rule" "allow_all_traffic_ipv4" {
     cidr_ipv4 =  "0.0.0.0/0" 
 }
 
+resource "aws_key_pair" "mi_key" {
+    key_name = "terraform_ec2"
+    public_key = file("~/.ssh/terraform_ec2.pub")
+}
 
