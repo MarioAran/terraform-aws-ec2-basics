@@ -25,6 +25,23 @@ resource "aws_vpc_security_group_ingress_rule" "allow_ssh_ipv4" {
     ip_protocol = "tcp"
     cidr_ipv4 =  "0.0.0.0/0" 
 }
+resource "aws_security_group" "allow_web" {
+    name = "allow_web"
+    description = "Allow ssh inbound traffic"
+    vpc_id = data.aws_vpc.default.id
+    tags = {
+      Name = "allow_web"
+    }
+}
+
+resource "aws_security_group" "allow_api" {
+    name = "allow_api"
+    description = "Allow api inbound traffic"
+    vpc_id = data.aws_vpc.default.id
+    tags = {
+      Name = "allow_api"
+    }
+}
 
 resource "aws_vpc_security_group_egress_rule" "allow_all_traffic_ipv4" {
     security_group_id = aws_security_group.allow_ssh.id
@@ -34,14 +51,6 @@ resource "aws_vpc_security_group_egress_rule" "allow_all_traffic_ipv4" {
     cidr_ipv4 =  "0.0.0.0/0" 
 }
 
-resource "aws_security_group" "allow_web" {
-    name = "allow_web"
-    description = "Allow ssh inbound traffic"
-    vpc_id = data.aws_vpc.default.id
-    tags = {
-      Name = "allow_web"
-    }
-}
 
 resource "aws_vpc_security_group_ingress_rule" "allow_web_ipv4" {
     security_group_id = aws_security_group.allow_web.id
