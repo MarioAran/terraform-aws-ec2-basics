@@ -2,7 +2,7 @@ resource "aws_instance" "app_server" {
     ami = data.aws_ami.ubuntu.id
     instance_type = var.instance_type
     key_name = aws_key_pair.mi_key.key_name
-    vpc_security_group_ids = [aws_security_group.allow_ssh.id,aws_security_group.allow_web.id]   
+    vpc_security_group_ids = [aws_security_group.allow_ssh.id,aws_security_group.allow_web.id,aws_security_group.allow_api.id]   
     tags = {
       Name = "learn-terraform"
     }
@@ -47,6 +47,14 @@ resource "aws_vpc_security_group_ingress_rule" "allow_web_ipv4" {
     security_group_id = aws_security_group.allow_web.id
     from_port = 80
     to_port = 80
+    ip_protocol = "tcp"
+    cidr_ipv4 =  "0.0.0.0/0" 
+}
+
+resource "aws_vpc_security_group_ingress_rule" "allow_api_ipv4" {
+    security_group_id = aws_security_group.allow_api.id
+    from_port = 5000
+    to_port = 5000
     ip_protocol = "tcp"
     cidr_ipv4 =  "0.0.0.0/0" 
 }
