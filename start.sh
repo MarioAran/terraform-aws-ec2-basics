@@ -1,63 +1,83 @@
 #!/bin/bash
-# -------------------------------
-# Script idempotente para instalar Docker y levantar Nginx
-# Diseñado para user_data en EC2 Ubuntu
-# -------------------------------
+set -euo pipefail
 
-set -euo pipefail  # ⚡ Modo estricto: falla si hay error o variable no definida
-LOG_FILE="/var/log/user_data.log"
+# Variables
+APP_DIR="$HOME/wordpress"
+DB_DIR="$APP_DIR/db_data"
+WP_DIR="$APP_DIR/wordpress_data"
+COMPOSE_FILE="$APP_DIR/docker-compose.yaml"
+LOG_FILE="$APP_DIR/start.log"
 
-echo "=== Iniciando script user_data ===" | tee -a $LOG_FILE
+echo "=== Iniciando script start.sh ===" | tee -a "$LOG_FILE"
 
-# 1️⃣ Actualizar sistema
-echo "Actualizando paquetes..." | tee -a $LOG_FILE
-apt update -y >> $LOG_FILE 2>&1
-apt upgrade -y >> $LOG_FILE 2>&1
+# 1️⃣ Actualizar sistema e instalar dependencias
+echo "Actualizando paquetes..." | tee -a "$LOG_FILE"
+sudo apt update -y >> "$LOG_FILE" 2>&1
+sudo apt upgrade -y >> "$LOG_FILE" 2>&1
+sudo apt install -y curl git unzip >> "$LOG_FILE" 2>&1
 
-# 2️⃣ Instalar dependencias básicas
-echo "Instalando dependencias (curl, ca-certificates)..." | tee -a $LOG_FILE
-apt install -y curl ca-certificates >> $LOG_FILE 2>&1
-
-# 3️⃣ Instalar Docker solo si no existe
+# 2️⃣ Instalar Docker si no existe
 if ! command -v docker &> /dev/null; then
-    echo "Docker no encontrado, instalando..." | tee -a $LOG_FILE
+    echo "Docker no encontrado, instalando..." | tee -a "$LOG_FILE"
+    sudo apt install -y docker.io >> "$LOG_FILE" 2>&1
+    sudo systemctl start docker
+    sudo systemctl enable docker
+else
+    echo "Docker ya está instalado" | tee -a "$LOG_FILE"
+fi
 
-    # Crear keyrings y agregar repositorio
-    install -m 0755 -d /etc/apt/keyrings
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-    chmod a+r /etc/apt/keyrings/docker.asc
+# 3️⃣ Instalar Docker Compose si no existe
+if ! command -v docker-compose &> /dev/null; then
+    echo "Docker Compose no encontrado, instalando..." | tee -a "$LOG_FILE"
+    sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+    sudo chmod +x /usr/local/bin/docker-compose
+else
+    echo "Docker Compose ya está instalado" | tee -a "$LOG_FILE"
+fi
 
-    tee /etc/apt/sources.list.d/docker.sources <<EOF
-Types: deb
-URIs: https://download.docker.com/linux/ubuntu
-Suites: $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}")
-Components: stable
-Signed-By: /etc/apt/keyrings/docker.asc
+# 4️⃣ Crear carpetas para volúmenes
+mkdir -p "$DB_DIR" "$WP_DIR"
+echo "Carpetas para volúmenes creadas en $APP_DIR" | tee -a "$LOG_FILE"
+
+# 5️⃣ Crear docker-compose.yaml
+cat > "$COMPOSE_FILE" <<EOF
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8
+    volumes:
+      - $DB_DIR:/var/lib/mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: Passw0rd
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wp_user
+      MYSQL_PASSWORD: Passw0rd
+
+  wordpress:
+    depends_on:
+      - db
+    image: wordpress:latest
+    volumes:
+      - $WP_DIR:/var/www/html
+    ports:
+      - "80:80"
+    restart: always
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_USER: wp_user
+      WORDPRESS_DB_PASSWORD: Passw0rd
+      WORDPRESS_DB_NAME: wordpress
 EOF
 
-    apt update -y >> $LOG_FILE 2>&1
-    apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin >> $LOG_FILE 2>&1
+echo "docker-compose.yaml creado" | tee -a "$LOG_FILE"
 
-    # Iniciar y habilitar Docker
-    systemctl start docker
-    systemctl enable docker
-else
-    echo "Docker ya está instalado" | tee -a $LOG_FILE
-fi
+# 6️⃣ Levantar contenedores
+cd "$APP_DIR"
+docker-compose up -d >> "$LOG_FILE" 2>&1
+echo "Contenedores WordPress y MySQL levantados" | tee -a "$LOG_FILE"
 
-# 4️⃣ Levantar contenedor Nginx solo si no existe
-CONTAINER_NAME="nginx_hello"
-if ! docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
-    echo "Creando contenedor ${CONTAINER_NAME}..." | tee -a $LOG_FILE
-    docker run -d -p 80:80 --name $CONTAINER_NAME nginx >> $LOG_FILE 2>&1
-else
-    echo "Contenedor ${CONTAINER_NAME} ya existe, arrancando si está parado..." | tee -a $LOG_FILE
-    docker start $CONTAINER_NAME >> $LOG_FILE 2>&1
-fi
-
-# 5️⃣ Verificación final
-echo "Verificando estado de Docker y contenedor..." | tee -a $LOG_FILE
-docker --version | tee -a $LOG_FILE
-docker ps | tee -a $LOG_FILE
-
-echo "=== Script finalizado correctamente ===" | tee -a $LOG_FILE
+# 7️⃣ Verificación final
+docker ps | tee -a "$LOG_FILE"
+echo "=== Script finalizado correctamente ===" | tee -a "$LOG_FILE"
