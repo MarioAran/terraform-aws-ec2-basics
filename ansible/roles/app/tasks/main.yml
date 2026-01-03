@@ -1,0 +1,43 @@
+- name: Update apt 
+  apt:
+    update_cache: yes
+
+- name: Install base packages
+  apt:
+    name:
+      - ca-certificates
+      - curl
+      - git
+    state: present
+
+- name: Install Docker
+  apt: 
+    name: docker.io
+    state: present
+    update_cache: yes
+
+- name: Start and enable Docker
+  service:
+    name: docker
+    state: started
+    enabled: true
+
+- name: Clone app repository
+  git:
+    repo: https://github.com/MarioAran/Quadcodex_Team_Back.git
+    dest: /home/ubuntu/gym-app
+    update: yes
+
+- name: Build Docker image 
+  command: docker build -t mega_gym_api .
+  args:
+    chdir: /home/ubuntu/gym-app
+
+- name: Run Flask API
+  docker_container:
+    name: mega_gym_api
+    image: mega_gym_api
+    state: started
+    restart_policy: always
+    published_ports:
+      - "5000:5000"

@@ -6,7 +6,6 @@ resource "aws_instance" "app_server" {
     tags = {
       Name = "learn-terraform"
     }
-    user_data = file("start.sh")
 }
 
 resource "aws_security_group" "allow_ssh" {
