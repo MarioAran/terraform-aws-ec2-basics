@@ -29,15 +29,21 @@
     update: yes
 
 - name: Build Docker image 
-  command: docker build -t mega_gym_api .
+  command: docker build --no-cache -t gym_api .
   args:
     chdir: /home/ubuntu/gym-app
 
 - name: Run Flask API
   docker_container:
-    name: mega_gym_api
-    image: mega_gym_api
+    name: gym_api
+    image: gym_api
     state: started
     restart_policy: always
     published_ports:
       - "5000:5000"
+    healtcheck: 
+      test: ["CMD-SHELL","curl -f http://localhost:5000/health || exit 1 "]
+      intervañ: 30s
+      timeout: 5s 
+      retries: 3 
+      start_period: 20s 
