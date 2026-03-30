@@ -1,4 +1,6 @@
-- name: Update apt 
+# roles/app/tasks/main.yml
+
+- name: Update apt cache
   apt:
     update_cache: yes
 
@@ -8,11 +10,55 @@
       - ca-certificates
       - curl
       - git
+      - python3-pip
+      - gnupg
+      - lsb-release
     state: present
 
-- name: Install Docker
-  apt: 
-    name: docker.io
+- name: Detect system architecture
+  command: uname -m
+  register: system_arch
+  changed_when: false
+
+- name: Set architecture fact
+  set_fact:
+    docker_arch: "{{ 'arm64' if system_arch.stdout == 'aarch64' else 'armhf' if system_arch.stdout == 'armv7l' else 'amd64' }}"
+
+- name: Remove old Docker packages if exist
+  apt:
+    name:
+      - docker
+      - docker-engine
+      - docker.io
+      - containerd
+      - runc
+    state: absent
+  ignore_errors: yes
+
+- name: Add Docker GPG key
+  shell: |
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+  args:
+    creates: /etc/apt/keyrings/docker.gpg
+
+- name: Add Docker repository
+  shell: |
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+  args:
+    creates: /etc/apt/sources.list.d/docker.list
+
+- name: Update apt cache after adding Docker repo
+  apt:
+    update_cache: yes
+
+- name: Install Docker and Docker Compose plugin
+  apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin  # ← CORREGIDO: antes decía docker-compos-build
     state: present
     update_cache: yes
 
@@ -22,28 +68,24 @@
     state: started
     enabled: true
 
+- name: Add ansible user to docker group
+  user:
+    name: ansible
+    groups: docker
+    append: yes
+
 - name: Clone app repository
   git:
     repo: https://github.com/MarioAran/Quadcodex_Team_Back.git
-    dest: /home/ubuntu/gym-app
+    dest: /home/ansible/gym-app
     update: yes
 
-- name: Build Docker image 
-  command: docker build --no-cache -t gym_api .
+- name: Run docker compose (using docker compose plugin)
+  command: docker compose up -d
   args:
-    chdir: /home/ubuntu/gym-app
+    chdir: /home/ansible/gym-app
+  register: compose_result
 
-- name: Run Flask API
-  docker_container:
-    name: gym_api
-    image: gym_api
-    state: started
-    restart_policy: always
-    published_ports:
-      - "5000:5000"
-    healtcheck: 
-      test: ["CMD-SHELL","curl -f http://localhost:5000/health || exit 1 "]
-      intervañ: 30s
-      timeout: 5s 
-      retries: 3 
-      start_period: 20s 
+#- name: Show compose output
+#  debug:
+#    var: compose_result.stdout_lines
