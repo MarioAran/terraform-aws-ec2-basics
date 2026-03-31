@@ -41,7 +41,7 @@ Este proyecto despliega una **instancia EC2 con Ubuntu 24.04** utilizando Terraf
     ├── terraform.tfstate
     ├── terraform.tfstate.backup
     └── variables.tf
-
+```
 ---
 
 ## Variables
