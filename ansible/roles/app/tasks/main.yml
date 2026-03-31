@@ -1,5 +1,3 @@
-# roles/app/tasks/main.yml
-
 - name: Update apt cache
   apt:
     update_cache: yes
@@ -85,7 +83,3 @@
   args:
     chdir: /home/ansible/gym-app
   register: compose_result
-
-#- name: Show compose output
-#  debug:
-#    var: compose_result.stdout_lines
