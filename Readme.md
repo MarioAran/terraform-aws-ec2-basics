@@ -25,13 +25,13 @@ Este proyecto despliega una **instancia EC2 con Ubuntu 24.04** utilizando Terraf
 .
 ├── Readme.md
 ├── ansible
-│   ├── hosts.ini
-│   ├── playbook.yml
-│   ├── roles
-│   │   └── app
-│   │       └── tasks
-│   │           └── main.yml
-│   └── terraform.tfstate
+│   ├── hosts.ini
+│   ├── playbook.yml
+│   ├── roles
+│   │   └── app
+│   │       └── tasks
+│   │           └── main.yml
+│   └── terraform.tfstate
 └── terraform
     ├── main.tf
     ├── outputs.tf
@@ -40,6 +40,7 @@ Este proyecto despliega una **instancia EC2 con Ubuntu 24.04** utilizando Terraf
     ├── terraform.tfstate
     ├── terraform.tfstate.backup
     └── variables.tf
+
 ---
 
 ## Variables
