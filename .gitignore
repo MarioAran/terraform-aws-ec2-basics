@@ -1,0 +1,5 @@
+.tf*
+*.backup
+*.vscode
+*.lock.hcl
+*.tfstate
