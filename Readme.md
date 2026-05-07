@@ -32,14 +32,11 @@ Este proyecto despliega una **instancia EC2 con Ubuntu 24.04** utilizando Terraf
 │   │   └── app
 │   │       └── tasks
 │   │           └── main.yml
-│   └── terraform.tfstate
 └── terraform
     ├── main.tf
     ├── outputs.tf
     ├── provider.tf
     ├── security_groups.tf
-    ├── terraform.tfstate
-    ├── terraform.tfstate.backup
     └── variables.tf
 ```
 ---
