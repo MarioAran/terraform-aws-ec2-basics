@@ -19,6 +19,56 @@ Este proyecto despliega una **instancia EC2 con Ubuntu 24.04** utilizando Terraf
 - Cuenta AWS (compatible con Free Tier)
 - Sistema operativo: macOS o Linux para ejecutar Terraform
 
+## AWS 
+El usuario tendra que tener los permisos minimos para poder ejecutar terraform 
+-  https://github.com/MarioAran/terraform-aws-ec2-provisioning/blob/main/terraform/minimum-permission.json
+En caso de solo querer probar su funcionamiento en dev se puede usar 
+
+```bash 
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "VisualEditor0",
+            "Effect": "Allow",
+            "Action": [
+                "ec2:*"
+            ],
+            "Resource": [
+                "*"
+            ]
+        }
+}
+
+```
+
+Se tiene que tener en cuenta que esto permitira todas las acciones que ec2 proporciona incluyendo la eliminacion de discos, terminar instancias y liberar IPs Elasticas. 
+
+Para negarlos puede agregar esto 
+
+```bash
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "AllowAllEC2",
+            "Effect": "Allow",
+            "Action": "ec2:*",
+            "Resource": "*"
+        },
+        {
+            "Sid": "DenyDangerousActions",
+            "Effect": "Deny",
+            "Action": [
+                "ec2:DeleteVolume",
+                "ec2:TerminateInstances",
+                "ec2:ReleaseAddress"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+```
 ---
 
 ## Estructura del proyecto
